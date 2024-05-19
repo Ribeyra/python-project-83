@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+
+{% block title %}Анализатор страниц{% endblock %}
+
+{% block content %}
+{% if messages %}
+<ul style="list-style-type: none;">
+    {% for category, message in messages %}
+    <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+<div class="container-lg mt-3"></div>
+    <h1>Сайты</h1>
+    <div class="table-responsive"></div>
+        <table class="table table-bordered table-hover text-nowrap">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Имя</th>
+                    <th>Последняя проверка</th>
+                    <th>Код ответа</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in table %}
+                <tr>
+                    <td>{{ entry[0] }}</td>
+                    <td>
+                        <a href="{{ url_for( 'url_get', id=entry[0] ) }}"> {{ entry[1] }} </a>
+                    </td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

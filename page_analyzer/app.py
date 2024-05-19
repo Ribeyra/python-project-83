@@ -87,6 +87,18 @@ def index():
     )
 
 
+@app.get('/urls')
+def urls_get():
+    messages = get_flashed_messages(with_categories=True)
+    repo = DB(DATABASE_URL, 'urls', ('name',))
+    table = repo.content()
+    return render_template(
+        'urls.html',
+        messages=messages,
+        table=table
+    )
+
+
 @app.post('/urls')
 def urls_post():
     messages = get_flashed_messages(with_categories=True)
