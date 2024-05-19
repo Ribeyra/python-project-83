@@ -1,10 +1,10 @@
 from flask import Flask, flash, get_flashed_messages, redirect, \
-    render_template, request, url_for
+    render_template, request, session, url_for
 from dotenv import load_dotenv
 from urllib.parse import urlparse
 from validators.url import url
 import os
-import psycopg2     # noqa f401
+import psycopg2
 
 load_dotenv()
 
@@ -79,8 +79,8 @@ def validate(normalize_url):
 
 @app.route('/')
 def index():
-
     messages = get_flashed_messages(with_categories=True)
+
     return render_template(
         'index.html',
         messages=messages
@@ -90,8 +90,18 @@ def index():
 @app.get('/urls')
 def urls_get():
     messages = get_flashed_messages(with_categories=True)
+
+    if messages:
+        wrong_url = session.pop('wrong_url', '')
+        return render_template(
+            'index.html',
+            messages=messages,
+            url=wrong_url
+        ), 422
+
     repo = DB(DATABASE_URL, 'urls', ('name',))
     table = repo.content()
+
     return render_template(
         'urls.html',
         messages=messages,
@@ -101,37 +111,29 @@ def urls_get():
 
 @app.post('/urls')
 def urls_post():
-    messages = get_flashed_messages(with_categories=True)
-
     raw_url = request.form.to_dict()['url']
     normalize_url = normalize(raw_url)
 
     if not validate(normalize_url):
-        flash('url не прошел валидацию', 'error')
-        messages = get_flashed_messages(with_categories=True)
-        return render_template(
-            'index.html',
-            messages=messages,
-            url=raw_url
-        )
-
-    flash('Страница успешно добавлена', 'success')
+        flash('Некорректный URL', 'error')
+        session['wrong_url'] = raw_url
+        return redirect(url_for('urls_get'), code=302)
 
     repo = DB(DATABASE_URL, 'urls', ('name',))
     repo.insert(normalize_url)
     id = repo.find('name', normalize_url)[0][0]
-    print('СМОТРИ СЮДА', id)
 
-    return redirect(url_for('url_get', id=id), code=302)
+    flash('Страница успешно добавлена', 'success')
+    return redirect(url_for('urls_id_get', id=id), code=302)
 
 
 @app.route('/urls/<int:id>')
-def url_get(id):
+def urls_id_get(id):
+    messages = get_flashed_messages(with_categories=True)
+
     repo = DB(DATABASE_URL, 'urls', ('name',))
     entry = repo.find('id', id)[0]
-    # print('СМОТРИ СЮДА', entry)
 
-    messages = get_flashed_messages(with_categories=True)
     return render_template(
         'url.html',
         messages=messages,

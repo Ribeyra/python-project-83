@@ -14,7 +14,7 @@
     <div class="col-12 col-md-10 col-lg-8 mx-auto border rounded-3 bg-light p-5">
         <h1>Анализатор страниц</h1>
         <p>Бесплатно проверяйте сайты на SEO-пригодность</p>
-        <form action="/urls" method="post">
+        <form action="{{ url_for('urls_post') }}" method="post">
 
 
                 <label class="sr-only">Заполните это поле</label>
