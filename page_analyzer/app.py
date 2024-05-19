@@ -22,11 +22,19 @@ class DB:
         self.table = table
         self.table_descr = table_descr
 
-    def _read_db(self, filds='*', search_fild='', search_value=''):
+    def _read_db(
+        self,
+        filds='*',
+        search_fild='',
+        search_value='',
+        reverse=False
+    ):
         table = self.table
         query = f"SELECT {filds} FROM {table}"
         if search_fild:
             query += f' WHERE {search_fild} = %s'
+        if reverse:
+            query += ' ORDER BY id DESC'
         if isinstance(search_value, int):
             search_value = str(search_value)
         try:
@@ -36,6 +44,7 @@ class DB:
                         print('СМОТРИ СЮДА', query, search_value)
                         cur.execute(query, (search_value,))
                     else:
+                        print('СМОТРИ СЮДА', query)
                         cur.execute(query)
                     result = cur.fetchall()
                     return result
@@ -56,8 +65,8 @@ class DB:
             # Обработка ошибок, например, вывод сообщения или логирование
             print("Error write data in the database:", error)
 
-    def content(self):
-        return self._read_db()
+    def content(self, reverse=False):
+        return self._read_db(reverse=reverse)
 
     def find(self, fild, value):
         return self._read_db(search_fild=fild, search_value=value)
@@ -100,7 +109,7 @@ def urls_get():
         ), 422
 
     repo = DB(DATABASE_URL, 'urls', ('name',))
-    table = repo.content()
+    table = repo.content(reverse=True)
 
     return render_template(
         'urls.html',
