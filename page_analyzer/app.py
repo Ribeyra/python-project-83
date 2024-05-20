@@ -22,54 +22,66 @@ class DB:
         self.table = table
         self.table_descr = table_descr
 
-    def _read_db(
+    def _query_constructor(
         self,
-        filds='*',
-        search_fild='',
-        search_value='',
-        reverse=False
-    ):
-        table = self.table
-        query = f"SELECT {filds} FROM {table}"
-        if search_fild:
-            query += f' WHERE {search_fild} = %s'
-        if reverse:
-            query += ' ORDER BY id DESC'
-        if isinstance(search_value, int):
-            search_value = str(search_value)
+        *,
+        fields='*',
+        search_field='',
+        reverse=False,
+        **kwargs
+    ) -> str:
+
+        query_templates = {
+            'select': f'SELECT {fields} FROM {self.table}',
+            'where': f'WHERE {search_field} = %s' if search_field else '',
+            'reverse': 'ORDER BY id DESC' if reverse else ''
+        }
+
+        query_list = [value for value in query_templates.values() if value]
+
+        query = ' '.join(query_list)
+        return query
+
+    def _read_db(self, *args, one=False, **kwargs):
+
+        query = self._query_constructor(**kwargs)
+        search_value = kwargs.get('search_value')
+
         try:
             with psycopg2.connect(self.database_url) as conn:
                 with conn.cursor() as cur:
-                    if search_fild:
-                        print('СМОТРИ СЮДА', query, search_value)
+                    if search_value:
                         cur.execute(query, (search_value,))
                     else:
-                        print('СМОТРИ СЮДА', query)
                         cur.execute(query)
-                    result = cur.fetchall()
+                    result = cur.fetchone() if one else cur.fetchall()
                     return result
         except (psycopg2.Error, Exception) as error:
-            # Обработка ошибок, например, вывод сообщения или логирование
             print("Error reading data from the database:", error)
             return None
 
     def _write_db(self, value):
+
         table = f'{self.table} ({", ".join(self.table_descr)})'
         query = f"INSERT INTO {table} VALUES (%s)"
+
         try:
             with psycopg2.connect(self.database_url) as conn:
                 with conn.cursor() as cur:
                     cur.execute(query, value)
                     conn.commit()
         except (psycopg2.Error, Exception) as error:
-            # Обработка ошибок, например, вывод сообщения или логирование
             print("Error write data in the database:", error)
 
     def content(self, reverse=False):
         return self._read_db(reverse=reverse)
 
-    def find(self, fild, value):
-        return self._read_db(search_fild=fild, search_value=value)
+    def find(self, search_field, search_value, one=False):
+        return self._read_db(
+            search_field=search_field,
+            search_value=search_value,
+            one=one
+        )
 
     def insert(self, value):
         value = (value,)
@@ -130,7 +142,7 @@ def urls_post():
 
     repo = DB(DATABASE_URL, 'urls', ('name',))
     repo.insert(normalize_url)
-    id = repo.find('name', normalize_url)[0][0]
+    id = repo.find('name', normalize_url, one=True)[0]
 
     flash('Страница успешно добавлена', 'success')
     return redirect(url_for('urls_id_get', id=id), code=302)
@@ -141,7 +153,7 @@ def urls_id_get(id):
     messages = get_flashed_messages(with_categories=True)
 
     repo = DB(DATABASE_URL, 'urls', ('name',))
-    entry = repo.find('id', id)[0]
+    entry = repo.find('id', id, one=True)
 
     return render_template(
         'url.html',
