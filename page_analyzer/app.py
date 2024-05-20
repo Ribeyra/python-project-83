@@ -15,6 +15,34 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 DATABASE_URL = os.getenv('DATABASE_URL')
 conn = psycopg2.connect(DATABASE_URL)
 
+URLS_QUERY = """SELECT
+    urls.id AS id,
+    urls.name AS name,
+    lc.last_check AS last_check,
+    lc.status_code AS status_code
+FROM urls
+LEFT JOIN (
+    SELECT
+        uc.url_id,
+        uc.status_code,
+        uc.created_at AS last_check
+    FROM
+        url_checks uc
+    JOIN (
+        SELECT
+            url_id,
+            MAX(id) AS max_id
+        FROM
+            url_checks
+        GROUP BY
+            url_id
+    ) AS latest_checks
+    ON
+        uc.id = latest_checks.max_id
+) AS lc ON urls.id = lc.url_id
+ORDER BY id DESC;
+"""
+
 
 class DB:
     def __init__(self, database_url, table, table_descr):
@@ -73,18 +101,23 @@ class DB:
         except (psycopg2.Error, Exception) as error:
             print("Error write data in the database:", error)
 
-    def content(self, reverse=False):
-        return self._read_db(reverse=reverse)
+    def content(self, **kwargs):
+        return self._read_db(**kwargs)
 
-    def find(self, search_field, search_value, one=False):
+    def find(self, search_field, search_value, **kwargs):
         return self._read_db(
             search_field=search_field,
             search_value=search_value,
-            one=one
+            **kwargs
         )
 
     def insert(self, value):
         self._write_db(value)
+
+
+class ComplexQuery(DB):
+    def _query_constructor(*args, **kwargs):
+        return kwargs['query']
 
 
 def normalize(raw_url):
@@ -119,8 +152,8 @@ def urls_get():
             url=wrong_url
         ), 422
 
-    repo = DB(DATABASE_URL, 'urls', ('name',))
-    table = repo.content(reverse=True)
+    repo = ComplexQuery(DATABASE_URL, 'urls', ('name',))
+    table = repo.content(query=URLS_QUERY)
 
     return render_template(
         'urls.html',
@@ -151,11 +184,25 @@ def urls_post():
 def urls_id_get(id):
     messages = get_flashed_messages(with_categories=True)
 
-    repo = DB(DATABASE_URL, 'urls', ('name',))
-    entry = repo.find('id', id, one=True)
+    repo_urls = DB(DATABASE_URL, 'urls', ('name',))
+    entry = repo_urls.find('id', id, one=True)
+
+    repo_urls = DB(DATABASE_URL, 'url_checks', ('url_id',))
+    checks = repo_urls.find('url_id', id, reverse=True)
 
     return render_template(
         'url.html',
         messages=messages,
-        entry=entry
+        entry=entry,
+        checks=checks
     )
+
+
+@app.post('/urls/<int:id>/checks')
+def checks_post(id):
+
+    repo = DB(DATABASE_URL, 'url_checks', ('url_id',))
+    repo.insert(id)
+
+    flash('Страница успешно проверена', 'success')
+    return redirect(url_for('urls_id_get', id=id), code=302)

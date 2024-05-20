@@ -32,4 +32,38 @@
     </div>
 </div>
 
+<h1>Проверки</h1>
+<form action="{{ url_for( 'checks_post', id=entry[0] ) }}" method="post">
+    <label class="sr-only"></label>
+    <input type="submit" value="Запустить проверку">
+</form>
+
+<div class="container-lg mt-3"></div>
+    <div class="table-responsive"></div>
+        <table class="table table-bordered table-hover text-nowrap" data-test="checks">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Код ответа</th>
+                    <th>h1</th>
+                    <th>title</th>
+                    <th>description</th>
+                    <th>Дата создания</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for check in checks %}
+                <tr>
+                    <td>{{ check[0] }}</td>
+                    <td>{{ check[2]|default('') }}</td>
+                    <td>{{ check[3]|default('') }}</td>
+                    <td>{{ check[4]|default('') }}</td>
+                    <td>{{ check[5]|default('') }}</td>
+                    <td>{{ check[6]|default('') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}
