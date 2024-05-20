@@ -68,7 +68,7 @@ class DB:
         try:
             with psycopg2.connect(self.database_url) as conn:
                 with conn.cursor() as cur:
-                    cur.execute(query, value)
+                    cur.execute(query, (value,))
                     conn.commit()
         except (psycopg2.Error, Exception) as error:
             print("Error write data in the database:", error)
@@ -84,7 +84,6 @@ class DB:
         )
 
     def insert(self, value):
-        value = (value,)
         self._write_db(value)
 
 
