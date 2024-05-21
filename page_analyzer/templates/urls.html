@@ -29,8 +29,8 @@
                     <td>
                         <a href="{{ url_for( 'urls_id_get', id=entry[0] ) }}"> {{ entry[1] }} </a>
                     </td>
-                    <td>{{ entry[2] }}</td>
-                    <td>{{ entry[3] }}</td>
+                    <td>{{ entry[2] if entry[2] != None else '' }}</td>
+                    <td>{{ entry[3] if entry[3] != None else '' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
