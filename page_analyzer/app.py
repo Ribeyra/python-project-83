@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from validators.url import url
 import os
 import psycopg2
+import requests
 
 load_dotenv()
 
@@ -91,7 +92,7 @@ class DB:
     def _write_db(self, value):
 
         table = f'{self.table} ({", ".join(self.table_descr)})'
-        query = f"INSERT INTO {table} VALUES (%s)"
+        query = f"INSERT INTO {table} VALUES %s"
 
         try:
             with psycopg2.connect(self.database_url) as conn:
@@ -111,7 +112,8 @@ class DB:
             **kwargs
         )
 
-    def insert(self, value):
+    def insert(self, *value):
+        print(value)
         self._write_db(value)
 
 
@@ -201,8 +203,20 @@ def urls_id_get(id):
 @app.post('/urls/<int:id>/checks')
 def checks_post(id):
 
-    repo = DB(DATABASE_URL, 'url_checks', ('url_id',))
-    repo.insert(id)
+    repo = DB(DATABASE_URL, 'urls', ('name',))
+    url = repo.find('id', id, fields='name', one=True)[0]
+
+    try:
+        check_url = requests.get(url, timeout=15)
+    except (ConnectionError, Exception) as error:
+        print("Error check url:", error)
+        flash('Произошла ошибка при проверке', 'error')
+        return redirect(url_for('urls_id_get', id=id), code=302)
+
+    status_code = check_url.status_code
+
+    repo = DB(DATABASE_URL, 'url_checks', ('url_id', 'status_code'))
+    repo.insert(id, status_code)
 
     flash('Страница успешно проверена', 'success')
     return redirect(url_for('urls_id_get', id=id), code=302)
