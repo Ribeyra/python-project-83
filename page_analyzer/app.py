@@ -219,7 +219,9 @@ def checks_post(id):
     soup = BeautifulSoup(check_url.text, 'html.parser')
     h1 = soup.h1.string if soup.h1 else ''
     title = soup.title.string if soup.title else ''
-    description = soup.find(attrs={"name": "description"})['content'] or ''
+    description = soup.find(
+        attrs={"name": "description"}
+    )['content'] if soup.meta else ''
 
     repo = DB(
         DATABASE_URL,
