@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from flask import Flask, flash, get_flashed_messages, redirect, \
     render_template, request, session, url_for
 from dotenv import load_dotenv
+from page_analyzer.constants import URLS_QUERY
 from urllib.parse import urlparse
 from validators.url import url
 import os
@@ -16,34 +17,6 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 DATABASE_URL = os.getenv('DATABASE_URL')
 conn = psycopg2.connect(DATABASE_URL)
-
-URLS_QUERY = """SELECT
-    urls.id AS id,
-    urls.name AS name,
-    lc.last_check AS last_check,
-    lc.status_code AS status_code
-FROM urls
-LEFT JOIN (
-    SELECT
-        uc.url_id,
-        uc.status_code,
-        uc.created_at AS last_check
-    FROM
-        url_checks uc
-    JOIN (
-        SELECT
-            url_id,
-            MAX(id) AS max_id
-        FROM
-            url_checks
-        GROUP BY
-            url_id
-    ) AS latest_checks
-    ON
-        uc.id = latest_checks.max_id
-) AS lc ON urls.id = lc.url_id
-ORDER BY id DESC;
-"""
 
 
 class DB:
