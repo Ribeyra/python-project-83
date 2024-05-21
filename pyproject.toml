@@ -4,6 +4,12 @@ version = "0.1.0"
 description = ""
 authors = ["ribeyra <ribeyra@gmail.com>"]
 readme = "README.md"
+packages = [
+  { include = "page_analyzer" },
+]
+
+[tool.poetry.scripts]
+page-analyzer = "page_analyzer.app:app"
 
 [tool.poetry.dependencies]
 python = "^3.10"
