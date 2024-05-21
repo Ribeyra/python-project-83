@@ -102,6 +102,7 @@ class DB:
                     conn.commit()
         except (psycopg2.Error, Exception) as error:
             print("Error write data in the database:", error)
+            raise
 
     def content(self, **kwargs):
         return self._read_db(**kwargs)
@@ -114,7 +115,6 @@ class DB:
         )
 
     def insert(self, *value):
-        print(value)
         self._write_db(value)
 
 
@@ -176,10 +176,15 @@ def urls_post():
         return redirect(url_for('urls_get'), code=302)
 
     repo = DB(DATABASE_URL, 'urls', ('name',))
-    repo.insert(normalize_url)
+    try:
+        repo.insert(normalize_url)
+        flash('Страница успешно добавлена', 'success')
+    except (psycopg2.Error, Exception) as error:
+        if 'duplicate' in str(error):
+            flash('Страница уже существует', 'warning')
+
     id = repo.find('name', normalize_url, one=True)[0]
 
-    flash('Страница успешно добавлена', 'success')
     return redirect(url_for('urls_id_get', id=id), code=302)
 
 
