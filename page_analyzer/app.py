@@ -221,7 +221,7 @@ def checks_post(id):
     title = soup.title.string if soup.title else ''
     description = soup.find(
         attrs={"name": "description"}
-    )['content'] if soup.meta else ''
+    )['content'] if 'content' in soup.meta else ''
 
     repo = DB(
         DATABASE_URL,
