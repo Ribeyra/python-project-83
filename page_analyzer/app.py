@@ -24,7 +24,7 @@ def normalize(raw_url: str) -> str:
     return normalize_url
 
 
-def validate(normalize_url):
+def validate(normalize_url: str) -> bool:
     return url(normalize_url) is True and len(normalize_url) < 256
 
 
@@ -62,23 +62,23 @@ def urls_get():
 
 @app.post('/urls')
 def urls_post():
-    raw_url = request.form.to_dict()['url']
-    normalize_url = normalize(raw_url)
+    raw_url = request.form.get('url')
+    normalized_url = normalize(raw_url)
 
-    if not validate(normalize_url):
+    if not validate(normalized_url):
         flash('Некорректный URL', 'error')
         session['wrong_url'] = raw_url
         return redirect(url_for('urls_get'), code=302)
 
     repo = DatabaseManager(DATABASE_URL, 'urls', ('name',))
     try:
-        repo.insert(normalize_url)
+        repo.insert(normalized_url)
         flash('Страница успешно добавлена', 'success')
     except Exception as error:
         if 'duplicate' in str(error):
             flash('Страница уже существует', 'warning')
 
-    id = repo.find('name', normalize_url, one=True)[0]
+    id = repo.find('name', normalized_url, one=True, fields='id')[0]
 
     return redirect(url_for('urls_id_get', id=id), code=302)
 
