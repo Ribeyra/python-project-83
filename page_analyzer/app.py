@@ -3,10 +3,10 @@ from flask import Flask, flash, get_flashed_messages, redirect, \
     render_template, request, session, url_for
 from dotenv import load_dotenv
 from page_analyzer.constants import URLS_QUERY
+from page_analyzer.db_manager import DatabaseManager, DBManagerForComplexQuery
 from urllib.parse import urlparse
 from validators.url import url
 import os
-import psycopg2
 import requests
 
 load_dotenv()
@@ -16,87 +16,9 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 DATABASE_URL = os.getenv('DATABASE_URL')
-conn = psycopg2.connect(DATABASE_URL)
 
 
-class DB:
-    def __init__(self, database_url, table, table_descr):
-        self.database_url = database_url
-        self.table = table
-        self.table_descr = table_descr
-
-    def _query_constructor(
-        self,
-        *,
-        fields='*',
-        search_field='',
-        reverse=False,
-        **kwargs
-    ) -> str:
-
-        query_templates = {
-            'select': f'SELECT {fields} FROM {self.table}',
-            'where': f'WHERE {search_field} = %s' if search_field else '',
-            'reverse': 'ORDER BY id DESC' if reverse else ''
-        }
-
-        query_list = [value for value in query_templates.values() if value]
-
-        query = ' '.join(query_list)
-        return query
-
-    def _read_db(self, *args, one=False, **kwargs):
-
-        query = self._query_constructor(**kwargs)
-        search_value = kwargs.get('search_value')
-
-        try:
-            with psycopg2.connect(self.database_url) as conn:
-                with conn.cursor() as cur:
-                    if search_value:
-                        cur.execute(query, (search_value,))
-                    else:
-                        cur.execute(query)
-                    result = cur.fetchone() if one else cur.fetchall()
-                    return result
-        except (psycopg2.Error, Exception) as error:
-            print("Error reading data from the database:", error)
-            return None
-
-    def _write_db(self, value):
-
-        table = f'{self.table} ({", ".join(self.table_descr)})'
-        query = f"INSERT INTO {table} VALUES %s"
-
-        try:
-            with psycopg2.connect(self.database_url) as conn:
-                with conn.cursor() as cur:
-                    cur.execute(query, (value,))
-                    conn.commit()
-        except (psycopg2.Error, Exception) as error:
-            print("Error write data in the database:", error)
-            raise
-
-    def content(self, **kwargs):
-        return self._read_db(**kwargs)
-
-    def find(self, search_field, search_value, **kwargs):
-        return self._read_db(
-            search_field=search_field,
-            search_value=search_value,
-            **kwargs
-        )
-
-    def insert(self, *value):
-        self._write_db(value)
-
-
-class ComplexQuery(DB):
-    def _query_constructor(*args, **kwargs):
-        return kwargs['query']
-
-
-def normalize(raw_url):
+def normalize(raw_url: str) -> str:
     url_tup = urlparse(raw_url)
     normalize_url = f'{url_tup.scheme}://{url_tup.hostname}'
     return normalize_url
@@ -128,7 +50,7 @@ def urls_get():
             url=wrong_url
         ), 422
 
-    repo = ComplexQuery(DATABASE_URL, 'urls', ('name',))
+    repo = DBManagerForComplexQuery(DATABASE_URL, 'urls', ('name',))
     table = repo.content(query=URLS_QUERY)
 
     return render_template(
@@ -148,11 +70,11 @@ def urls_post():
         session['wrong_url'] = raw_url
         return redirect(url_for('urls_get'), code=302)
 
-    repo = DB(DATABASE_URL, 'urls', ('name',))
+    repo = DatabaseManager(DATABASE_URL, 'urls', ('name',))
     try:
         repo.insert(normalize_url)
         flash('Страница успешно добавлена', 'success')
-    except (psycopg2.Error, Exception) as error:
+    except Exception as error:
         if 'duplicate' in str(error):
             flash('Страница уже существует', 'warning')
 
@@ -165,10 +87,10 @@ def urls_post():
 def urls_id_get(id):
     messages = get_flashed_messages(with_categories=True)
 
-    repo_urls = DB(DATABASE_URL, 'urls', ('name',))
+    repo_urls = DatabaseManager(DATABASE_URL, 'urls', ('name',))
     entry = repo_urls.find('id', id, one=True)
 
-    repo_urls = DB(DATABASE_URL, 'url_checks', ('url_id',))
+    repo_urls = DatabaseManager(DATABASE_URL, 'url_checks', ('url_id',))
     checks = repo_urls.find('url_id', id, reverse=True)
 
     return render_template(
@@ -182,7 +104,7 @@ def urls_id_get(id):
 @app.post('/urls/<int:id>/checks')
 def checks_post(id):
 
-    repo = DB(DATABASE_URL, 'urls', ('name',))
+    repo = DatabaseManager(DATABASE_URL, 'urls', ('name',))
     url = repo.find('id', id, fields='name', one=True)[0]
 
     try:
@@ -201,7 +123,7 @@ def checks_post(id):
         attrs={"name": "description"}
     )['content'] if 'content' in soup.meta else ''
 
-    repo = DB(
+    repo = DatabaseManager(
         DATABASE_URL,
         'url_checks',
         ('url_id', 'status_code', 'h1', 'title', 'description')
