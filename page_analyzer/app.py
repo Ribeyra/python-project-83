@@ -1,3 +1,4 @@
+from bs4 import BeautifulSoup
 from flask import Flask, flash, get_flashed_messages, redirect, \
     render_template, request, session, url_for
 from dotenv import load_dotenv
@@ -215,8 +216,17 @@ def checks_post(id):
 
     status_code = check_url.status_code
 
-    repo = DB(DATABASE_URL, 'url_checks', ('url_id', 'status_code'))
-    repo.insert(id, status_code)
+    soup = BeautifulSoup(check_url.text, 'html.parser')
+    h1 = soup.h1.string if soup.h1 else ''
+    title = soup.title.string if soup.title else ''
+    description = soup.find(attrs={"name": "description"})['content'] or ''
+
+    repo = DB(
+        DATABASE_URL,
+        'url_checks',
+        ('url_id', 'status_code', 'h1', 'title', 'description')
+    )
+    repo.insert(id, status_code, h1, title, description)
 
     flash('Страница успешно проверена', 'success')
     return redirect(url_for('urls_id_get', id=id), code=302)
