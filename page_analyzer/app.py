@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-from flask import Flask, flash, get_flashed_messages, redirect, \
+from flask import Flask, abort, flash, get_flashed_messages, redirect, \
     render_template, request, url_for
 from page_analyzer.constants import URLS_QUERY
 from page_analyzer.db_manager import DatabaseManager, DBManagerForComplexQuery
@@ -85,6 +85,9 @@ def urls_id_get(id):
     repo_urls = DatabaseManager(DATABASE_URL, 'urls', ('name',))
     entry = repo_urls.find('id', id, one=True)
 
+    if entry is None:
+        abort(404)
+
     repo_urls = DatabaseManager(DATABASE_URL, 'url_checks', ('url_id',))
     checks = repo_urls.find('url_id', id, reverse=True)
 
@@ -130,3 +133,8 @@ def checks_post(id):
 
     flash('Страница успешно проверена', 'success')
     return redirect(url_for('urls_id_get', id=id), code=302)
+
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
