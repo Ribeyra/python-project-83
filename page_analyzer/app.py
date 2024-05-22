@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 from flask import Flask, flash, get_flashed_messages, redirect, \
-    render_template, request, session, url_for
+    render_template, request, url_for
 from dotenv import load_dotenv
 from page_analyzer.constants import URLS_QUERY
 from page_analyzer.db_manager import DatabaseManager, DBManagerForComplexQuery
@@ -42,14 +42,6 @@ def index():
 def urls_get():
     messages = get_flashed_messages(with_categories=True)
 
-    if messages:
-        wrong_url = session.pop('wrong_url', '')
-        return render_template(
-            'index.html',
-            messages=messages,
-            url=wrong_url
-        ), 422
-
     repo = DBManagerForComplexQuery(DATABASE_URL, 'urls', ('name',))
     table = repo.content(query=URLS_QUERY)
 
@@ -66,9 +58,12 @@ def urls_post():
     normalized_url = normalize(raw_url)
 
     if not validate(normalized_url):
-        flash('Некорректный URL', 'danger')
-        session['wrong_url'] = raw_url
-        return redirect(url_for('urls_get'), code=302)
+        messages = [('danger', 'Некорректный URL')]
+        return render_template(
+            'index.html',
+            messages=messages,
+            url=raw_url
+        ), 422
 
     repo = DatabaseManager(DATABASE_URL, 'urls', ('name',))
     try:
