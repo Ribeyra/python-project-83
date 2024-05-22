@@ -3,15 +3,8 @@
 {% block title %}Анализатор страниц{% endblock %}
 
 {% block content %}
-{% if messages %}
-<ul style="list-style-type: none;">
-    {% for category, message in messages %}
-    <li class="{{ category }}">{{ message }}</li>
-    {% endfor %}
-</ul>
-{% endif %}
-<div class="container-lg mt-3"></div>
     <h1>Сайты</h1>
+    
     <div class="table-responsive"></div>
         <table class="table table-bordered table-hover text-nowrap" data-test="urls">
             <thead>
@@ -27,7 +20,7 @@
                 <tr>
                     <td>{{ entry[0] }}</td>
                     <td>
-                        <a href="{{ url_for( 'urls_id_get', id=entry[0] ) }}"> {{ entry[1] }} </a>
+                        <a href="{{ url_for( 'urls_id_get', id=entry[0] ) }}">{{ entry[1] }}</a>
                     </td>
                     <td>{{ entry[2] if entry[2] != None else '' }}</td>
                     <td>{{ entry[3] if entry[3] != None else '' }}</td>
@@ -36,6 +29,5 @@
             </tbody>
         </table>
     </div>
-</div>
 
 {% endblock %}

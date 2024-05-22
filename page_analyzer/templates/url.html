@@ -3,44 +3,35 @@
 {% block title %}Анализатор страниц{% endblock %}
 
 {% block content %}
-{% if messages %}
-<ul style="list-style-type: none;">
-    {% for category, message in messages %}
-    <li class="{{ category }}">{{ message }}</li>
-    {% endfor %}
-</ul>
-{% endif %}
-<div class="container-lg mt-3"></div>
     <h1>Сайт: {{ entry[1] }}</h1>
-    <div class="table-responsive"></div>
+
+    <div class="table-responsive">
         <table class="table table-bordered table-hover text-nowrap" data-test="url">
-
-            <tr>
-                <td>ID</td>
-                <td>{{ entry[0] }}</td>
-            </tr>
-            <tr>
-                <td>Имя</td>
-                <td>{{ entry[1] }}</td>
-            </tr>
-            <tr>
-                <td>Дата создания</td>
-                <td>{{ entry[2] }}</td>
-            </tr>
-
+            <tbody>
+                <tr>
+                    <td>ID</td>
+                    <td>{{ entry[0] }}</td>
+                </tr>
+                <tr>
+                    <td>Имя</td>
+                    <td>{{ entry[1] }}</td>
+                </tr>
+                <tr>
+                    <td>Дата создания</td>
+                    <td>{{ entry[2] }}</td>
+                </tr>
+            </tbody>
         </table>
     </div>
-</div>
 
-<h1>Проверки</h1>
-<form action="{{ url_for( 'checks_post', id=entry[0] ) }}" method="post">
-    <label class="sr-only"></label>
-    <input type="submit" value="Запустить проверку">
-</form>
 
-<div class="container-lg mt-3"></div>
-    <div class="table-responsive"></div>
-        <table class="table table-bordered table-hover text-nowrap" data-test="checks">
+        <h2 class="mt-5 mb-3">Проверки</h2>
+        <form action="{{ url_for( 'checks_post', id=entry[0] ) }}" method="post">
+            <input type="submit" class="btn btn-primary" value="Запустить проверку">
+        </form>
+
+    <div>
+        <table class="table table-bordered table-hover mt-2" data-test="checks">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -65,5 +56,5 @@
             </tbody>
         </table>
     </div>
-</div>
+
 {% endblock %}

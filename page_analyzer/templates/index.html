@@ -3,25 +3,14 @@
 {% block title %}Анализатор страниц{% endblock %}
 
 {% block content %}
-{% if messages %}
-<ul style="list-style-type: none;">
-    {% for category, message in messages %}
-    <li class="{{ category }}">{{ message }}</li>
-    {% endfor %}
-</ul>
-{% endif %}
+<h1></h1>
 <div class="row">
     <div class="col-12 col-md-10 col-lg-8 mx-auto border rounded-3 bg-light p-5">
-        <h1>Анализатор страниц</h1>
-        <p>Бесплатно проверяйте сайты на SEO-пригодность</p>
-        <form action="{{ url_for('urls_post') }}" method="post">
-
-
-                <label class="sr-only">Заполните это поле</label>
-                <input type="text" name="url" value="{{ url|default('') }}" required placeholder="https://www.example.com">
-
-            <input type="submit" value="Confirm">
-            
+        <h1 class="display-3">Анализатор страниц</h1>
+        <p class="lead">Бесплатно проверяйте сайты на SEO-пригодность</p>
+        <form action="{{ url_for('urls_post') }}" method="post" class="d-flex justify-content-center">
+            <input type="text" name="url" value="{{ url|default('') }}" class="form-control form-control-lg" required placeholder="https://www.example.com">
+            <input type="submit" class="btn btn-primary btn-lg ms-3 px-5 text-uppercase mx-3" value="Проверить">
         </form>
     </div>
 </div>
