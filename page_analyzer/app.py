@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 from flask import Flask, flash, get_flashed_messages, redirect, \
     render_template, request, url_for
-from dotenv import load_dotenv
 from page_analyzer.constants import URLS_QUERY
 from page_analyzer.db_manager import DatabaseManager, DBManagerForComplexQuery
 from urllib.parse import urlparse
@@ -110,6 +110,9 @@ def checks_post(id):
         return redirect(url_for('urls_id_get', id=id), code=302)
 
     status_code = check_url.status_code
+    if status_code != 200:
+        flash('Произошла ошибка при проверке', 'danger')
+        return redirect(url_for('urls_id_get', id=id), code=302)
 
     soup = BeautifulSoup(check_url.text, 'html.parser')
     h1 = soup.h1.string if soup.h1 else ''
