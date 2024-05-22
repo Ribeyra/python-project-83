@@ -137,4 +137,6 @@ def checks_post(id):
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('404.html'), 404
+    with open('assets/ascii_art.txt') as file:
+        ascii_art = file.read()
+    return render_template('404.html', ascii_art=ascii_art), 404
