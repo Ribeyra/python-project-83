@@ -66,7 +66,7 @@ def urls_post():
     normalized_url = normalize(raw_url)
 
     if not validate(normalized_url):
-        flash('Некорректный URL', 'error')
+        flash('Некорректный URL', 'danger')
         session['wrong_url'] = raw_url
         return redirect(url_for('urls_get'), code=302)
 
@@ -76,7 +76,7 @@ def urls_post():
         flash('Страница успешно добавлена', 'success')
     except Exception as error:
         if 'duplicate' in str(error):
-            flash('Страница уже существует', 'warning')
+            flash('Страница уже существует', 'info')
 
     id = repo.find('name', normalized_url, one=True, fields='id')[0]
 
@@ -111,7 +111,7 @@ def checks_post(id):
         check_url = requests.get(url, timeout=15)
     except (ConnectionError, Exception) as error:
         print("Error check url:", error)
-        flash('Произошла ошибка при проверке', 'error')
+        flash('Произошла ошибка при проверке', 'danger')
         return redirect(url_for('urls_id_get', id=id), code=302)
 
     status_code = check_url.status_code
@@ -119,9 +119,9 @@ def checks_post(id):
     soup = BeautifulSoup(check_url.text, 'html.parser')
     h1 = soup.h1.string if soup.h1 else ''
     title = soup.title.string if soup.title else ''
-    description = soup.find(
-        attrs={"name": "description"}
-    )['content'] if 'content' in soup.meta else ''
+    raw_description = soup.find(attrs={"name": "description"})
+    description = raw_description['content']\
+        if 'content' in str(raw_description) else ''
 
     repo = DatabaseManager(
         DATABASE_URL,
