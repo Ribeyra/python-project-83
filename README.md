@@ -14,8 +14,8 @@
   
 [Page Analyzer](https://python-project-83-m5oy.onrender.com) is a site that analyzes specified pages for SEO suitability, similar to PageSpeed ​​Insights:  
   
-![index](assets/screenshots/index.png)  
+![index](https://raw.githubusercontent.com/Ribeyra/assets/main/screenshots/index.png)  
   
-![urls](assets/screenshots/urls.png)  
+![urls](https://raw.githubusercontent.com/Ribeyra/assets/main/screenshots/urls.png)  
   
-![check](assets/screenshots/check.png)  
+![check](https://raw.githubusercontent.com/Ribeyra/assets/main/screenshots/check.png)  
