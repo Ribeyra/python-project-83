@@ -10,9 +10,6 @@ CREATE TABLE IF NOT EXISTS url_checks (
     status_code INT,
     h1 VARCHAR(255),
     title VARCHAR(255),
-    description VARCHAR(255),
+    description VARCHAR(511),
     created_at DATE DEFAULT CURRENT_DATE
 );
-
-ALTER TABLE url_checks
-    ALTER COLUMN description SET DATA TYPE VARCHAR(511);
