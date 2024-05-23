@@ -13,3 +13,6 @@ CREATE TABLE IF NOT EXISTS url_checks (
     description VARCHAR(255),
     created_at DATE DEFAULT CURRENT_DATE
 );
+
+ALTER TABLE url_checks
+    ALTER COLUMN description SET DATA TYPE VARCHAR(511);
