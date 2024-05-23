@@ -119,10 +119,13 @@ def checks_post(id):
 
     soup = BeautifulSoup(check_url.text, 'html.parser')
     h1 = soup.h1.string if soup.h1 else ''
+    print('h1:', len(h1))
     title = soup.title.string if soup.title else ''
+    print('title:', len(title))
     raw_description = soup.find(attrs={"name": "description"})
     description = raw_description['content']\
         if 'content' in str(raw_description) else ''
+    print('description:', len(description))
 
     repo = DatabaseManager(
         DATABASE_URL,
@@ -137,6 +140,13 @@ def checks_post(id):
 
 @app.errorhandler(404)
 def page_not_found(e):
-    with open('assets/ascii_art.txt') as file:
+    with open('assets/not_that_droids.txt') as file:
         ascii_art = file.read()
     return render_template('404.html', ascii_art=ascii_art), 404
+
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    with open('assets/honest_work.txt') as file:
+        ascii_art = file.read()
+    return render_template('500.html', ascii_art=ascii_art), 500

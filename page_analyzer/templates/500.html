@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+
+{% block title %}Анализатор страниц{% endblock %}
+
+{% block content %}
+<h1>Кажется, что то пошло не так</h1>
+<p>
+    Сделать, то что вы собирались уже не получится, но можно вернуться 
+    <a href="{{ url_for( 'index' ) }}">на главную</a>
+</p>
+
+<pre style="font-family: monospace; font-size: 7px; line-height: 1;">
+{{ ascii_art }}
+</pre>
+
+{% endblock %}
