@@ -83,3 +83,9 @@ def check_url(id: int) -> str:
     )
     repo.insert(id, status_code, *site_info)
     return 'success'
+
+
+def get_text_from_file(path):
+    with open(path) as file:
+        ascii_art = file.read()
+    return ascii_art

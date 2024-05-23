@@ -2,7 +2,8 @@ from dotenv import load_dotenv
 from flask import Flask, abort, flash, get_flashed_messages, redirect, \
     render_template, request, url_for
 from page_analyzer.model import add_value_in_urls, check_url, \
-    get_value_from_urls, get_value_from_url_checks, get_urls_check_table
+    get_text_from_file, get_value_from_urls, get_value_from_url_checks, \
+    get_urls_check_table
 import os
 
 load_dotenv()
@@ -92,13 +93,11 @@ def error():
 
 @app.errorhandler(404)
 def page_not_found(e):
-    with open('assets/not_that_droids.txt') as file:
-        ascii_art = file.read()
+    ascii_art = get_text_from_file('assets/not_that_droids.txt')
     return render_template('404.html', ascii_art=ascii_art), 404
 
 
 @app.errorhandler(500)
 def internal_server_error(e):
-    with open('assets/honest_work.txt') as file:
-        ascii_art = file.read()
+    ascii_art = get_text_from_file('assets/honest_work.txt')
     return render_template('500.html', ascii_art=ascii_art), 500
