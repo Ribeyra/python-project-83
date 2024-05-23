@@ -1,13 +1,9 @@
-from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from flask import Flask, abort, flash, get_flashed_messages, redirect, \
     render_template, request, url_for
-from page_analyzer.constants import URLS_QUERY
-from page_analyzer.db_manager import DatabaseManager, DBManagerForComplexQuery
-from urllib.parse import urlparse
-from validators.url import url
+from page_analyzer.model import add_value_in_urls, check_url, \
+    get_value_from_urls, get_value_from_url_checks, get_urls_check_table
 import os
-import requests
 
 load_dotenv()
 
@@ -15,23 +11,10 @@ app = Flask(__name__)
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
-DATABASE_URL = os.getenv('DATABASE_URL')
-
-
-def normalize(raw_url: str) -> str:
-    url_tup = urlparse(raw_url)
-    normalize_url = f'{url_tup.scheme}://{url_tup.hostname}'
-    return normalize_url
-
-
-def validate(normalize_url: str) -> bool:
-    return url(normalize_url) is True and len(normalize_url) < 256
-
 
 @app.route('/')
 def index():
     messages = get_flashed_messages(with_categories=True)
-
     return render_template(
         'index.html',
         messages=messages
@@ -41,10 +24,7 @@ def index():
 @app.get('/urls')
 def urls_get():
     messages = get_flashed_messages(with_categories=True)
-
-    repo = DBManagerForComplexQuery(DATABASE_URL, 'urls', ('name',))
-    table = repo.content(query=URLS_QUERY)
-
+    table = get_urls_check_table()
     return render_template(
         'urls.html',
         messages=messages,
@@ -54,10 +34,15 @@ def urls_get():
 
 @app.post('/urls')
 def urls_post():
-    raw_url = request.form.get('url')
-    normalized_url = normalize(raw_url)
+    message_dict = {
+        'info': ('Страница уже существует', 'info'),
+        'success': ('Страница успешно добавлена', 'success')
+    }
 
-    if not validate(normalized_url):
+    raw_url = request.form.get('url')
+    id, message = add_value_in_urls(raw_url)
+
+    if message == 'danger':
         messages = [('danger', 'Некорректный URL')]
         return render_template(
             'index.html',
@@ -65,31 +50,19 @@ def urls_post():
             url=raw_url
         ), 422
 
-    repo = DatabaseManager(DATABASE_URL, 'urls', ('name',))
-    try:
-        repo.insert(normalized_url)
-        flash('Страница успешно добавлена', 'success')
-    except Exception as error:
-        if 'duplicate' in str(error):
-            flash('Страница уже существует', 'info')
-
-    id = repo.find('name', normalized_url, one=True, fields='id')[0]
-
+    flash(*message_dict[message])
     return redirect(url_for('urls_id_get', id=id), code=302)
 
 
 @app.route('/urls/<int:id>')
 def urls_id_get(id):
     messages = get_flashed_messages(with_categories=True)
-
-    repo_urls = DatabaseManager(DATABASE_URL, 'urls', ('name',))
-    entry = repo_urls.find('id', id, one=True)
+    entry = get_value_from_urls(id)
 
     if entry is None:
         abort(404)
 
-    repo_urls = DatabaseManager(DATABASE_URL, 'url_checks', ('url_id',))
-    checks = repo_urls.find('url_id', id, reverse=True)
+    checks = get_value_from_url_checks(id)
 
     return render_template(
         'url.html',
@@ -101,41 +74,20 @@ def urls_id_get(id):
 
 @app.post('/urls/<int:id>/checks')
 def checks_post(id):
+    message_dict = {
+        'danger': ('Произошла ошибка при проверке', 'danger'),
+        'success': ('Страница успешно проверена', 'success')
+    }
 
-    repo = DatabaseManager(DATABASE_URL, 'urls', ('name',))
-    url = repo.find('id', id, fields='name', one=True)[0]
+    message = check_url(id)
 
-    try:
-        check_url = requests.get(url, timeout=15)
-    except (ConnectionError, Exception) as error:
-        print("Error check url:", error)
-        flash('Произошла ошибка при проверке', 'danger')
-        return redirect(url_for('urls_id_get', id=id), code=302)
-
-    status_code = check_url.status_code
-    if status_code != 200:
-        flash('Произошла ошибка при проверке', 'danger')
-        return redirect(url_for('urls_id_get', id=id), code=302)
-
-    soup = BeautifulSoup(check_url.text, 'html.parser')
-    h1 = soup.h1.string if soup.h1 else ''
-    print('h1:', len(h1))
-    title = soup.title.string if soup.title else ''
-    print('title:', len(title))
-    raw_description = soup.find(attrs={"name": "description"})
-    description = raw_description['content']\
-        if 'content' in str(raw_description) else ''
-    print('description:', len(description))
-
-    repo = DatabaseManager(
-        DATABASE_URL,
-        'url_checks',
-        ('url_id', 'status_code', 'h1', 'title', 'description')
-    )
-    repo.insert(id, status_code, h1, title, description)
-
-    flash('Страница успешно проверена', 'success')
+    flash(*message_dict[message])
     return redirect(url_for('urls_id_get', id=id), code=302)
+
+
+@app.route('/error')
+def error():
+    raise
 
 
 @app.errorhandler(404)
