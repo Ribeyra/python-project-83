@@ -1,78 +1,72 @@
 import psycopg2
 
 
-class DatabaseManager:
+class TableManager:
     def __init__(self, database_url, table, table_descr):
-        self.database_url = database_url
+        self.conn = psycopg2.connect(database_url)
         self.table = table
         self.table_descr = table_descr
 
+    def _execute_query(self, query, values=None, fetchone=False, insert=False):
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(query, values)
+                if insert:
+                    self.conn.commit()
+                    return None
+                if fetchone:
+                    return cur.fetchone()
+                return cur.fetchall()
+        except Exception as e:
+            self.conn.rollback()
+            print(f"Query failed: {e}")
+            raise e
+
+    def get(self, query):
+        return self._execute_query(query)
+
+    def close_conn(self):
+        self.conn.close()
+
+    def __del__(self):
+        self.close_conn()
+
+
+class TableManagerWithConstructor(TableManager):
     def _query_constructor(
         self,
         *,
-        fields='*',
+        fields='',
         search_field='',
         reverse=False,
+        insert=False,
         **kwargs
     ) -> str:
-
         query_templates = {
-            'select': f'SELECT {fields} FROM {self.table}',
+            'select': f'SELECT {fields} FROM {self.table}' if fields else '',
             'where': f'WHERE {search_field} = %s' if search_field else '',
-            'reverse': 'ORDER BY id DESC' if reverse else ''
+            'reverse': 'ORDER BY id DESC' if reverse else '',
+            'insert': f'INSERT INTO {self.table} '
+            f'({", ".join(self.table_descr)}) VALUES %s' if insert else '',
         }
 
         query_list = [value for value in query_templates.values() if value]
-
         query = ' '.join(query_list)
         return query
 
-    def _read_db(self, *args, one=False, **kwargs):
+    def get_one(self, search_field, search_value, **kwargs):
+        query = self._query_constructor(search_field=search_field, **kwargs)
+        return self._execute_query(query, (search_value,), fetchone=True)
 
-        query = self._query_constructor(**kwargs)
-        search_value = kwargs.get('search_value')
+    def get_many(self, search_field, search_value, **kwargs):
+        query = self._query_constructor(search_field=search_field, **kwargs)
+        return self._execute_query(query, (search_value,))
 
-        try:
-            with psycopg2.connect(self.database_url) as conn:
-                with conn.cursor() as cur:
-                    if search_value:
-                        cur.execute(query, (search_value,))
-                    else:
-                        cur.execute(query)
-                    result = cur.fetchone() if one else cur.fetchall()
-                    return result
-        except (psycopg2.Error, Exception) as error:
-            print("Error reading data from the database:", error)
-            return None
-
-    def _write_db(self, value):
-
-        table = f'{self.table} ({", ".join(self.table_descr)})'
-        query = f"INSERT INTO {table} VALUES %s"
-
-        try:
-            with psycopg2.connect(self.database_url) as conn:
-                with conn.cursor() as cur:
-                    cur.execute(query, (value,))
-                    conn.commit()
-        except (psycopg2.Error, Exception) as error:
-            print("Error write data in the database:", error)
-            raise
-
-    def content(self, **kwargs):
-        return self._read_db(**kwargs)
-
-    def find(self, search_field, search_value, **kwargs):
-        return self._read_db(
-            search_field=search_field,
-            search_value=search_value,
-            **kwargs
-        )
+    def get_all(self):
+        query = self._query_constructor(fields='*')
+        return self._execute_query(query)
 
     def insert(self, *value):
-        self._write_db(value)
-
-
-class DBManagerForComplexQuery(DatabaseManager):
-    def _query_constructor(*args, **kwargs):
-        return kwargs['query']
+        query = self._query_constructor(insert=True)
+        self._execute_query(query, (value,), insert=True)
+        self.conn.commit()

@@ -37,17 +37,17 @@ def urls_get():
 def urls_post():
     message_dict = {
         'info': ('Страница уже существует', 'info'),
-        'success': ('Страница успешно добавлена', 'success')
+        'success': ('Страница успешно добавлена', 'success'),
+        'danger': ('danger', 'Некорректный URL')
     }
 
     raw_url = request.form.get('url')
     id, message = add_value_in_urls(raw_url)
 
     if message == 'danger':
-        messages = [('danger', 'Некорректный URL')]
         return render_template(
             'index.html',
-            messages=messages,
+            messages=[message_dict[message]],
             url=raw_url
         ), 422
 
