@@ -35,12 +35,10 @@ class TableManager:
 class TableManagerWithConstructor(TableManager):
     def _query_constructor(
         self,
-        *,
         fields='',
         search_field='',
         reverse=False,
         insert=False,
-        **kwargs
     ) -> str:
         query_templates = {
             'select': f'SELECT {fields} FROM {self.table}' if fields else '',
