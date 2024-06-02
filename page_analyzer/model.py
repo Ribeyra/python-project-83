@@ -1,7 +1,6 @@
 from dotenv import load_dotenv
 from page_analyzer.constants import URLS_QUERY
-from page_analyzer.db_manager import TableManagerWithConstructor, \
-    TableManager
+from page_analyzer.db_manager import TableManager, TableManagerWithConstructor
 from page_analyzer.parser import get_site_info
 from urllib.parse import urlparse
 from validators.url import url
@@ -38,31 +37,37 @@ def add_value_in_urls(raw_url: str) -> tuple:
     repo = TableManagerWithConstructor(DATABASE_URL, 'urls', ('name',))
 
     try:
-        repo.insert(normalized_url)
+        id = repo.insert(normalized_url)
         message = 'success'
     except Exception as error:
         if 'duplicate' in str(error):
+            id = repo.get_one('name', normalized_url, select_columns='id')[0]
             message = 'info'
 
-    id = repo.get_one('name', normalized_url, fields='id')[0]
     return id, message
 
 
 def get_value_from_urls(search_value) -> tuple:
-    search_field = 'id'
+    search_column = 'id'
     repo = TableManagerWithConstructor(DATABASE_URL, 'urls', ('name',))
-    return repo.get_one(search_field, search_value, fields='*')
+    return repo.get_one(search_column, search_value, select_columns='*')
 
 
 def get_value_from_url_checks(search_value) -> list:
-    search_field = 'url_id'
+    search_column = 'url_id'
     repo = TableManagerWithConstructor(DATABASE_URL, 'url_checks', ('url_id',))
-    return repo.get_many(search_field, search_value, fields='*', reverse=True)
+    return repo.get_many(
+        search_column,
+        search_value,
+        select_columns='*',
+        reverse=True
+    )
 
 
 def check_url(id: int) -> str:
     repo = TableManagerWithConstructor(DATABASE_URL, 'urls', ('name',))
-    url = repo.get_one(search_field='id', search_value=id, fields='name')[0]
+    search_column = 'id'
+    url = repo.get_one(search_column, id, select_columns='name')[0]
 
     try:
         html_doc = requests.get(url, timeout=15)

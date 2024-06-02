@@ -7,15 +7,10 @@ class TableManager:
         self.table = table
         self.table_descr = table_descr
 
-    def _execute_query(self, query, values=None, fetchone=False, insert=False):
+    def _execute_query(self, query):
         try:
             with self.conn.cursor() as cur:
-                cur.execute(query, values)
-                if insert:
-                    self.conn.commit()
-                    return None
-                if fetchone:
-                    return cur.fetchone()
+                cur.execute(query)
                 return cur.fetchall()
         except Exception as e:
             self.conn.rollback()
@@ -35,36 +30,55 @@ class TableManager:
 class TableManagerWithConstructor(TableManager):
     def _query_constructor(
         self,
-        fields='',
-        search_field='',
+        *,
+        select_columns='',
+        search_column='',
         reverse=False,
         insert=False,
     ) -> str:
         query_templates = {
-            'select': f'SELECT {fields} FROM {self.table}' if fields else '',
-            'where': f'WHERE {search_field} = %s' if search_field else '',
+            'select': f'SELECT {select_columns} FROM '
+            f'{self.table}' if select_columns else '',
+            'where': f'WHERE {search_column} = %s' if search_column else '',
             'reverse': 'ORDER BY id DESC' if reverse else '',
             'insert': f'INSERT INTO {self.table} '
-            f'({", ".join(self.table_descr)}) VALUES %s' if insert else '',
+            f'({", ".join(self.table_descr)}) VALUES %s '
+            'RETURNING id' if insert else '',
         }
 
         query_list = [value for value in query_templates.values() if value]
         query = ' '.join(query_list)
         return query
 
-    def get_one(self, search_field, search_value, **kwargs):
-        query = self._query_constructor(search_field=search_field, **kwargs)
-        return self._execute_query(query, (search_value,), fetchone=True)
+    def _execute_query(self, query, values=None, fetch_all=False):
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(query, values)
+                if fetch_all:
+                    return cur.fetchall()
+                return cur.fetchone()
+        except Exception as e:
+            self.conn.rollback()
+            print(f"Query failed: {e}")
+            raise e
 
-    def get_many(self, search_field, search_value, **kwargs):
-        query = self._query_constructor(search_field=search_field, **kwargs)
+    def get_one(self, search_column, search_value, **kwargs):
+        query = self._query_constructor(search_column=search_column, **kwargs)
         return self._execute_query(query, (search_value,))
 
+    def get_many(self, search_column, search_value, **kwargs):
+        query = self._query_constructor(search_column=search_column, **kwargs)
+        return self._execute_query(query, (search_value,), fetch_all=True)
+
     def get_all(self):
-        query = self._query_constructor(fields='*')
-        return self._execute_query(query)
+        query = self._query_constructor(select_columns='*')
+        return self._execute_query(query, fetch_all=True)
 
     def insert(self, *value):
+        """
+        Add value in table and return row id
+        """
         query = self._query_constructor(insert=True)
-        self._execute_query(query, (value,), insert=True)
+        id = self._execute_query(query, (value,))
         self.conn.commit()
+        return id[0]
